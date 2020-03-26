@@ -1,12 +1,13 @@
 // Modules to control application life and create native browser window
 import Electron, { Menu } from 'electron'
-import CommonUtil from '~/src/library/util/common'
-import ConfigHelperUtil from '~/src/library/util/config_helper'
-import PathConfig from '~/src/config/path'
-import Logger from '~/src/library/logger'
-import DispatchTaskCommand from '~/src/command/dispatch_task'
-import MUser from '~/src/model/mblog_user'
-import MBlog from '~/src/model/mblog'
+// import test from '~/src/screen-catch'
+// import CommonUtil from '~/src/library/util/common'
+// import ConfigHelperUtil from '~/src/library/util/config_helper'
+// import PathConfig from '~/src/config/path'
+// import Logger from '~/src/library/logger'
+// import DispatchTaskCommand from '~/src/command/dispatch_task'
+// import MUser from '~/src/model/mblog_user'
+// import MBlog from '~/src/model/mblog'
 import fs from 'fs'
 import _ from 'lodash'
 
@@ -19,8 +20,6 @@ let mainWindow: Electron.BrowserWindow
 
 // 关闭https证书校验
 app.commandLine.appendSwitch('ignore-certificate-errors', 'true')
-
-let isRunning = false
 
 function createWindow() {
   if (process.platform === 'darwin') {
@@ -52,6 +51,8 @@ function createWindow() {
 
   const { screen } = Electron
   const { width, height } = screen.getPrimaryDisplay().workAreaSize
+
+
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width,
@@ -76,9 +77,16 @@ function createWindow() {
       nodeIntegration: true,
       // 启用webview标签
       webviewTag: true,
+      // 启用共享模块
+      enableRemoteModule: true,
     },
   })
 
+
+  global.screenConfig = {
+    width,
+    height,
+  }
   // and load the index.html of the app.
   if (isDebug) {
     // 本地调试 & 打开控制台
@@ -96,21 +104,6 @@ function createWindow() {
     // when you should delete the corresponding element.
     mainWindow = null
   })
-
-  // 清除所有cookie
-  // session.defaultSession.clearStorageData()
-
-  // 设置ua
-  session.defaultSession.webRequest.onBeforeSendHeaders((details, callback) => {
-    details.requestHeaders['User-Agent'] =
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36'
-    callback({ cancel: false, requestHeaders: details.requestHeaders })
-  })
-
-  global.pathConfig = PathConfig
-  // 向html代码注入MUser, 方便查询
-  global.mUser = MUser
-  global.mBlog = MBlog
 }
 
 // This method will be called when Electron has finished
@@ -135,82 +128,13 @@ app.on('activate', function() {
   }
 })
 
-ipcMain.on('start', async (event, taskConfigList) => {
-  if (isRunning) {
-    event.returnValue = '目前尚有任务执行, 请稍后'
-    return
-  }
-  isRunning = true
-  Logger.log('开始工作')
-  let cookieContent = ''
-  // 写入任务数据
-  fs.writeFileSync(PathConfig.customerTaskConfigUri, JSON.stringify(taskConfigList, null, 4))
-  await new Promise((resolve, reject) => {
-    // 获取页面cookie
-    session.defaultSession.cookies.get({}, (error, cookieList) => {
-      for (let cookie of cookieList) {
-        cookieContent = `${cookie.name}=${cookie.value};${cookieContent}`
-      }
-      // 顺利获取cookie列表
-      resolve()
-    })
-  })
-  // 将cookie更新到本地配置中
-  let config = CommonUtil.getConfig()
-  _.set(config, ['request', 'cookie'], cookieContent)
-  fs.writeFileSync(PathConfig.configUri, JSON.stringify(config, null, 4))
-  Logger.log(`任务配置生成完毕`)
-  Logger.log(`重新载入cookie配置`)
-  ConfigHelperUtil.reloadConfig()
-  Logger.log(`开始执行任务`)
-  event.returnValue = 'success'
-  let dispatchTaskCommand = new DispatchTaskCommand()
-  await dispatchTaskCommand.handle({}, {})
-  Logger.log(`所有任务执行完毕, 打开电子书文件夹 => `, PathConfig.outputPath)
-  // 输出打开文件夹
-  shell.showItemInFolder(PathConfig.outputPath)
-  isRunning = false
-})
+// ipcMain.on('start-test', async event => {
+//   console.log('start-test start')
+//   event.returnValue = true
+//   test()
+//   console.log('start-test finish')
+//   return
+// })
 
-ipcMain.on('openOutputDir', async event => {
-  shell.showItemInFolder(PathConfig.outputPath)
-  event.returnValue = true
-  return
-})
-
-ipcMain.on('startCustomerTask', async event => {
-  if (isRunning) {
-    event.returnValue = '目前尚有任务执行, 请稍后'
-    return
-  }
-  isRunning = true
-  Logger.log('开始工作')
-  let cookieContent = ''
-  await new Promise((resolve, reject) => {
-    // 获取页面cookie
-    session.defaultSession.cookies.get({}, (error, cookieList) => {
-      for (let cookie of cookieList) {
-        cookieContent = `${cookie.name}=${cookie.value};${cookieContent}`
-      }
-      // 顺利获取cookie列表
-      resolve()
-    })
-  })
-  // 将cookie更新到本地配置中
-  let config = CommonUtil.getConfig()
-  _.set(config, ['request', 'cookie'], cookieContent)
-  fs.writeFileSync(PathConfig.configUri, JSON.stringify(config, null, 4))
-  Logger.log(`任务配置生成完毕`)
-  Logger.log(`重新载入cookie配置`)
-  ConfigHelperUtil.reloadConfig()
-  Logger.log(`开始执行任务`)
-  event.returnValue = 'success'
-  let dispatchTaskCommand = new DispatchTaskCommand()
-  await dispatchTaskCommand.handle({}, {})
-  Logger.log(`所有任务执行完毕, 打开电子书文件夹 => `, PathConfig.outputPath)
-  // 输出打开文件夹
-  shell.showItemInFolder(PathConfig.outputPath)
-  isRunning = false
-})
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and require them here.
