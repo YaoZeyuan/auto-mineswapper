@@ -102,7 +102,7 @@ export default Vue.extend({
           var ctx=canvasItem.getContext("2d");
 
           const canvas_Start_W = 0;
-          const canvas_Start_H = 100;
+          const canvas_Start_H = 600;
           const canvas_End_W = canvas_Start_W + 300;
           const canvas_End_H = canvas_Start_H + 300;
           let myImageData = ctx.getImageData(0, 0, canvas_End_W, canvas_End_H);
@@ -135,12 +135,26 @@ export default Vue.extend({
                 let canvasIndexAt = (canvas_Self_Width * (h-canvas_Start_H) + (w-canvas_Start_W) ) * 4 
                 // 进行灰度处理
                 // Gray = (R*19595 + G*38469 + B*7472) >> 16
-                let gray =  (rgba.r *19595 + rgba.g*38469 + rgba.b*7472) >> 16
+                let gray = Math.floor( (rgba.r *19595 + rgba.g*38469 + rgba.b*7472) >> 16)
                 // 进行二极化处理, 经实验, 130作为阈值比较合适
-                if(gray > 130){
+                // rgba.b === 0 时, 色块一定为数字/已标记雷区
+                // if(rgba.b === 0 || gray > 130 ){
+                //     gray = 255
+                // }else{
+                //   gray = 0
+                // }
+
+                // 可以考虑进行两次二极化
+                // 第一次识别出数字
+                // 第二次识别出已经被挖开的块, 和不能被挖开的块
+                if(rgba.b ===0){
+                gray = 0
+                }else{
+                if( 15 <= gray  && gray <= 35 ){
                     gray = 255
                 }else{
                   gray = 0
+                  }
                 }
                 myImageData.data[canvasIndexAt] = gray
                 myImageData.data[canvasIndexAt+1] = gray
