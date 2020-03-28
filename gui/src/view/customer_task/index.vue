@@ -101,10 +101,10 @@ export default Vue.extend({
           // canvasItem.height = height
           var ctx=canvasItem.getContext("2d");
 
-          const canvas_Start_W = 100;
-          const canvas_Start_H = 200;
-          const canvas_End_W = 200;
-          const canvas_End_H = 300;
+          const canvas_Start_W = 0;
+          const canvas_Start_H = 100;
+          const canvas_End_W = canvas_Start_W + 300;
+          const canvas_End_H = canvas_Start_H + 300;
           let myImageData = ctx.getImageData(0, 0, canvas_End_W, canvas_End_H);
           let canvas_Self_Height = myImageData.height
           let canvas_Self_Width = myImageData.width
@@ -133,11 +133,19 @@ export default Vue.extend({
               }
 
                 let canvasIndexAt = (canvas_Self_Width * (h-canvas_Start_H) + (w-canvas_Start_W) ) * 4 
-                
-                myImageData.data[canvasIndexAt] = rgba.r
-                myImageData.data[canvasIndexAt+1] = rgba.g
-                myImageData.data[canvasIndexAt+2] = rgba.b
-                myImageData.data[canvasIndexAt+3] = rgba.a
+                // 进行灰度处理
+                // Gray = (R*19595 + G*38469 + B*7472) >> 16
+                let gray =  (rgba.r *19595 + rgba.g*38469 + rgba.b*7472) >> 16
+                // 进行二极化处理, 经实验, 130作为阈值比较合适
+                if(gray > 130){
+                    gray = 255
+                }else{
+                  gray = 0
+                }
+                myImageData.data[canvasIndexAt] = gray
+                myImageData.data[canvasIndexAt+1] = gray
+                myImageData.data[canvasIndexAt+2] = gray
+                myImageData.data[canvasIndexAt+3] = 255
             }
           }
           console.log("img.data =>", img.data)

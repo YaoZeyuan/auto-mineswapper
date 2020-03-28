@@ -5,4 +5,8 @@ export default class T {
     const png = pngjs.PNG.sync.read(source)
     return png
   }
+
+  static async async二值化png(png: pngjs.PNGWithMetadata) {
+      
+  }
 }
