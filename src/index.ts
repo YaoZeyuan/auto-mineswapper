@@ -1,13 +1,5 @@
 // Modules to control application life and create native browser window
 import Electron, { Menu } from 'electron'
-// import test from '~/src/screen-catch'
-// import CommonUtil from '~/src/library/util/common'
-// import ConfigHelperUtil from '~/src/library/util/config_helper'
-// import PathConfig from '~/src/config/path'
-// import Logger from '~/src/library/logger'
-// import DispatchTaskCommand from '~/src/command/dispatch_task'
-// import MUser from '~/src/model/mblog_user'
-// import MBlog from '~/src/model/mblog'
 import fs from 'fs'
 import _ from 'lodash'
 
@@ -52,7 +44,6 @@ function createWindow() {
   const { screen } = Electron
   const { width, height } = screen.getPrimaryDisplay().workAreaSize
 
-
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width,
@@ -81,7 +72,6 @@ function createWindow() {
       enableRemoteModule: true,
     },
   })
-
 
   global.screenConfig = {
     width,
