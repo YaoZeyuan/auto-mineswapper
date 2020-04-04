@@ -89,11 +89,20 @@ export default Vue.extend({
 
           this.base64.png = bitContent
           const img = await imgProcess.asyncPng2pixel(pngBuffer)
+
+
+
           const width = img.width
           const height = img.height
+          
+          const canvas_Start_W = 0;
+          const canvas_Start_H = 600;
+          const canvas_End_W = canvas_Start_W + 300;
+          const canvas_End_H = canvas_Start_H + 300;
+          
           // 设置canvas宽高
-          this.canvas.width = width
-          this.canvas.height = height
+          this.canvas.width = 300
+          this.canvas.height = 300
 
           // 绘制canvas
           let canvasItem = document.getElementById("canvas-item");
@@ -101,70 +110,73 @@ export default Vue.extend({
           // canvasItem.height = height
           var ctx=canvasItem.getContext("2d");
 
-          const canvas_Start_W = 0;
-          const canvas_Start_H = 600;
-          const canvas_End_W = canvas_Start_W + 300;
-          const canvas_End_H = canvas_Start_H + 300;
+         
           let myImageData = ctx.getImageData(0, 0, canvas_End_W, canvas_End_H);
-          let canvas_Self_Height = myImageData.height
-          let canvas_Self_Width = myImageData.width
-          let canvasIndex = 0
-          
-          for(let indexAt = 0;indexAt < myImageData.data.length;indexAt++){
-            // 先初始化为0
-            if(indexAt%4 ===3){
-              myImageData.data[indexAt] = 200;
-            }else{
-              myImageData.data[indexAt] = 0;
-            }
+           const bufferArray = imgProcess.get截图区域(img, 0, 0, 300, 300)
+          for(let index=0;index < myImageData.data.length;index++){
+            myImageData.data[index] = bufferArray[index]
           }
-          // console.log(" myImageData.data => ", myImageData.data)
-
-
-
-          for(let w = canvas_Start_W; w<= canvas_End_W; w++){
-            for(let h =canvas_Start_H;h<=canvas_End_H;h++){
-              let indexAt = (width * h + w) * 4
-              let rgba = {
-                r : img.data[indexAt],
-                g : img.data[indexAt+1],
-                b : img.data[indexAt+2],
-                a : img.data[indexAt+3]
-              }
-
-                let canvasIndexAt = (canvas_Self_Width * (h-canvas_Start_H) + (w-canvas_Start_W) ) * 4 
-                // 进行灰度处理
-                // Gray = (R*19595 + G*38469 + B*7472) >> 16
-                let gray = Math.floor( (rgba.r *19595 + rgba.g*38469 + rgba.b*7472) >> 16)
-                // 进行二极化处理, 经实验, 130作为阈值比较合适
-                // rgba.b === 0 时, 色块一定为数字/已标记雷区
-                // if(rgba.b === 0 || gray > 130 ){
-                //     gray = 255
-                // }else{
-                //   gray = 0
-                // }
-
-                // 可以考虑进行两次二极化
-                // 第一次识别出数字
-                // 第二次识别出已经被挖开的块, 和不能被挖开的块
-                if(rgba.b ===0){
-                gray = 0
-                }else{
-                if( 15 <= gray  && gray <= 35 ){
-                    gray = 255
-                }else{
-                  gray = 0
-                  }
-                }
-                myImageData.data[canvasIndexAt] = gray
-                myImageData.data[canvasIndexAt+1] = gray
-                myImageData.data[canvasIndexAt+2] = gray
-                myImageData.data[canvasIndexAt+3] = 255
-            }
-          }
-          console.log("img.data =>", img.data)
-          console.log("myImageData =>", myImageData.data)
           ctx.putImageData(myImageData, 0,0)
+
+          // let canvas_Self_Height = myImageData.height
+          // let canvas_Self_Width = myImageData.width
+          // let canvasIndex = 0
+          
+          // for(let indexAt = 0;indexAt < myImageData.data.length;indexAt++){
+          //   // 先初始化为0
+          //   if(indexAt%4 ===3){
+          //     myImageData.data[indexAt] = 200;
+          //   }else{
+          //     myImageData.data[indexAt] = 0;
+          //   }
+          // }
+          // // console.log(" myImageData.data => ", myImageData.data)
+
+
+
+          // for(let w = canvas_Start_W; w<= canvas_End_W; w++){
+          //   for(let h =canvas_Start_H;h<=canvas_End_H;h++){
+          //     let indexAt = (width * h + w) * 4
+          //     let rgba = {
+          //       r : img.data[indexAt],
+          //       g : img.data[indexAt+1],
+          //       b : img.data[indexAt+2],
+          //       a : img.data[indexAt+3]
+          //     }
+
+          //       let canvasIndexAt = (canvas_Self_Width * (h-canvas_Start_H) + (w-canvas_Start_W) ) * 4 
+          //       // 进行灰度处理
+          //       // Gray = (R*19595 + G*38469 + B*7472) >> 16
+          //       let gray = Math.floor( (rgba.r *19595 + rgba.g*38469 + rgba.b*7472) >> 16)
+          //       // 进行二极化处理, 经实验, 130作为阈值比较合适
+          //       // rgba.b === 0 时, 色块一定为数字/已标记雷区
+          //       // if(rgba.b === 0 || gray > 130 ){
+          //       //     gray = 255
+          //       // }else{
+          //       //   gray = 0
+          //       // }
+
+          //       // 可以考虑进行两次二极化
+          //       // 第一次识别出数字
+          //       // 第二次识别出已经被挖开的块, 和不能被挖开的块
+          //       if(rgba.b ===0){
+          //       gray = 0
+          //       }else{
+          //       if( 15 <= gray  && gray <= 35 ){
+          //           gray = 255
+          //       }else{
+          //         gray = 0
+          //         }
+          //       }
+          //       myImageData.data[canvasIndexAt] = gray
+          //       myImageData.data[canvasIndexAt+1] = gray
+          //       myImageData.data[canvasIndexAt+2] = gray
+          //       myImageData.data[canvasIndexAt+3] = 255
+          //   }
+          // }
+          // console.log("img.data =>", img.data)
+          // console.log("myImageData =>", myImageData.data)
+          // ctx.putImageData(myImageData, 0,0)
 
           // this.base64.bmp = source.thumbnail.toBitmap().toString("base64")
           // this.imgSrc = bitContent// "data:image/bmp;base64," + base64Content
