@@ -18,10 +18,6 @@
     <div class="capture-img">
       <img :src="base64.png"/>
     </div>
-    <h1>base64编码内容:</h1>
-    <div class="base64-img-content">
-      <!-- {{base64.png}} -->
-    </div>
     <h1>截取内容</h1>
     <div class="show-canvas">
       <canvas :style="canvasStyle" id="canvas-item"/>
@@ -32,6 +28,8 @@
 <script lang="ts">
 import Vue from 'vue'
 import imgProcess from "./img-process"
+import pngjs, { PNG } from 'pngjs'
+import utils from "./utils"
 // In the renderer process.
 import { desktopCapturer } from 'electron'
 const remote = require("electron").remote
@@ -40,7 +38,7 @@ const clipboard = require('electron').clipboard
 import _ from 'lodash'
 import moment from 'moment'
 import fs from 'fs'
-import { Canvas_End_HTMLAttributes, CanvasHTMLAttributes } from 'react'
+import {  CanvasHTMLAttributes } from 'react'
 
 
 export default Vue.extend({
@@ -67,150 +65,59 @@ export default Vue.extend({
       console.log("复制成功")
     },
     async asyncHandleStartTask() {
-      const screenConfig = remote.getGlobal('screenConfig')
-      const screenWidth = screenConfig.width
-      const screenHeight =  screenConfig.height
-      
-      console.log("test start")
-      let sources = await desktopCapturer.getSources({ types: ['screen'],thumbnailSize:{
-        height:screenHeight,
-        width:screenWidth,
-      }})
-      // this.imgContentList = []
-      for (const source of sources) {
-        console.log(' source.name => ', source.name)
-      
-        if (source.name === 'Entire Screen') {
-          // 只能通过全屏窗口截取
-          const bitContent = source.thumbnail.toDataURL()
-          const pngBuffer = source.thumbnail.toPNG()
-          // const base64Content = bitContent.toString('base64')
-          
-
-          this.base64.png = bitContent
-          const img = await imgProcess.asyncPng2pixel(pngBuffer)
-
-
-
-          const width = img.width
-          const height = img.height
-          
-          const canvas_Start_W = 0;
-          const canvas_Start_H = 600;
-          const canvas_End_W = canvas_Start_W + 300;
-          const canvas_End_H = canvas_Start_H + 300;
-          
-          // 设置canvas宽高
-          this.canvas.width = 300
-          this.canvas.height = 300
-
-          // 绘制canvas
-          let canvasItem = document.getElementById("canvas-item");
-          // canvasItem.width = width
-          // canvasItem.height = height
-          var ctx=canvasItem.getContext("2d");
-
-         
-          let myImageData = ctx.getImageData(0, 0, canvas_End_W, canvas_End_H);
-           const bufferArray = imgProcess.get截图区域(img, 0, 0, 300, 300)
-          for(let index=0;index < myImageData.data.length;index++){
-            myImageData.data[index] = bufferArray[index]
-          }
-          ctx.putImageData(myImageData, 0,0)
-
-          // let canvas_Self_Height = myImageData.height
-          // let canvas_Self_Width = myImageData.width
-          // let canvasIndex = 0
-          
-          // for(let indexAt = 0;indexAt < myImageData.data.length;indexAt++){
-          //   // 先初始化为0
-          //   if(indexAt%4 ===3){
-          //     myImageData.data[indexAt] = 200;
-          //   }else{
-          //     myImageData.data[indexAt] = 0;
-          //   }
-          // }
-          // // console.log(" myImageData.data => ", myImageData.data)
-
-
-
-          // for(let w = canvas_Start_W; w<= canvas_End_W; w++){
-          //   for(let h =canvas_Start_H;h<=canvas_End_H;h++){
-          //     let indexAt = (width * h + w) * 4
-          //     let rgba = {
-          //       r : img.data[indexAt],
-          //       g : img.data[indexAt+1],
-          //       b : img.data[indexAt+2],
-          //       a : img.data[indexAt+3]
-          //     }
-
-          //       let canvasIndexAt = (canvas_Self_Width * (h-canvas_Start_H) + (w-canvas_Start_W) ) * 4 
-          //       // 进行灰度处理
-          //       // Gray = (R*19595 + G*38469 + B*7472) >> 16
-          //       let gray = Math.floor( (rgba.r *19595 + rgba.g*38469 + rgba.b*7472) >> 16)
-          //       // 进行二极化处理, 经实验, 130作为阈值比较合适
-          //       // rgba.b === 0 时, 色块一定为数字/已标记雷区
-          //       // if(rgba.b === 0 || gray > 130 ){
-          //       //     gray = 255
-          //       // }else{
-          //       //   gray = 0
-          //       // }
-
-          //       // 可以考虑进行两次二极化
-          //       // 第一次识别出数字
-          //       // 第二次识别出已经被挖开的块, 和不能被挖开的块
-          //       if(rgba.b ===0){
-          //       gray = 0
-          //       }else{
-          //       if( 15 <= gray  && gray <= 35 ){
-          //           gray = 255
-          //       }else{
-          //         gray = 0
-          //         }
-          //       }
-          //       myImageData.data[canvasIndexAt] = gray
-          //       myImageData.data[canvasIndexAt+1] = gray
-          //       myImageData.data[canvasIndexAt+2] = gray
-          //       myImageData.data[canvasIndexAt+3] = 255
-          //   }
-          // }
-          // console.log("img.data =>", img.data)
-          // console.log("myImageData =>", myImageData.data)
-          // ctx.putImageData(myImageData, 0,0)
-
-          // this.base64.bmp = source.thumbnail.toBitmap().toString("base64")
-          // this.imgSrc = bitContent// "data:image/bmp;base64," + base64Content
-          //   try {
-          //     const stream = await navigator.mediaDevices.getUserMedia({
-          //       audio: false,
-          //       video: {
-          //         mandatory: {
-          //           chromeMediaSource: 'desktop',
-          //           chromeMediaSourceId: source.id,
-          //           minWidth: 1280,
-          //           maxWidth: 1280,
-          //           minHeight: 720,
-          //           maxHeight: 720,
-          //         },
-          //       },
-          //     })
-          //     handleStream(stream)
-          //   } catch (e) {
-          //     handleError(e)
-          //   }
-          //   return
-        }
-      }
-
-
-      // // 将当前任务配置发送给服务器
-      // ipcRenderer.sendSync('start-test')
+      let screenPng = await this.catchScreenShot()
+      let positionBlock = await imgProcess.getBlock(screenPng)
+      console.log("positionBlock => ", positionBlock)
+      this.generateClipImg(screenPng, positionBlock.minX,positionBlock.minY,positionBlock.width,positionBlock.height)
+      // 对雷区进行建模
+      // 1. 获取游戏图像边界 
+      // 2. 点击↓键, 生成黄色框 => rgb值(225,243,90)
+      // 3. 找到黄框, 确认每个格子大小
+      // 4. 按大小将图像分割为雷区
+      // 5. 识别雷区文字: 已开/未开/确认为雷/数字/不可开放
+      // 6. 标记所有地雷(按数字1键)
+      // 7. 打开第一个为0的数字区域(回车或空格键, 使用上下左右键移动过去)
+      // 重复1~7, 直到找不到新增为0区域为止
     },
+    async catchScreenShot(){
+      // 临时隐藏窗口, 方便截图
+      const currentWindow = remote.getCurrentWindow()
+      // currentWindow.hide();
+      // console.log("sleep")
+      // await utils.sleep(1)
+      // console.log("weak up")
+      let pngItem= await imgProcess.get屏幕截图()
+
+      // 恢复最大化状态
+      // currentWindow.show();
+
+      return pngItem
+    },
+    async generateClipImg(pngItem: pngjs.PNGWithMetadata, startX:number=0, startY:number=0, clipWidth:number=300, clipHeight:number=300){
+
+      // 设置canvas宽高
+      this.canvas.width = clipWidth
+      this.canvas.height = clipHeight
+
+      console.log("arguments =>", arguments)
+      // 绘制canvas
+      let canvasItem:HTMLCanvasElement = document.getElementById("canvas-item");
+      // canvas 元素是 可替换元素, 有默认的宽高属性(此属性与 css 样式中的 width 和 height 不同), 默认 300px*150px
+      // canvas 的绘制宽高取决于它的宽高属性, 与 css 样式中的宽高无关
+      canvasItem.setAttribute('width', clipWidth + "px")
+      canvasItem.setAttribute('height', clipHeight + "px")
+      var ctx=canvasItem.getContext("2d");
+      const bufferArray = imgProcess.get按区域截图(pngItem, startX, startY, clipWidth, clipHeight)
+      let myImageData = new ImageData(bufferArray, clipWidth, clipHeight)
+      for(let index=0;index < myImageData.data.length;index++){
+        myImageData.data[index] = bufferArray[index]
+      }
+      ctx!.putImageData(myImageData, 0,0)
+    }
   },
   computed: {
     canvasStyle(){
       return `width:${this.canvas.width}px;height:${this.canvas.height}px;`
-      // return `width:300px;height:300px;`
     }
   },
 })

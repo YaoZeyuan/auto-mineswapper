@@ -4,7 +4,10 @@ const utils = require('./utils')
 const config = require('../config')
 const vueLoaderConfig = require('./vue-loader.conf')
 const VueLoaderPlugin = require('vue-loader/lib/plugin')
+const nodeLoader = require('node-loader');
+
 let projectRoot = path.resolve(__dirname, '../')
+
 
 module.exports = {
   cache: true, // 开启webpack的默认缓存
@@ -133,7 +136,11 @@ module.exports = {
           limit: 10240,
           name: utils.assetsPath(`${config.project.version}/fonts/[name].[hash:7].[ext]`)
         }
-      }
+      },
+      {
+        test: /\.node$/,
+        use: 'node-loader'
+      },
     ]
   },
   plugins: [
