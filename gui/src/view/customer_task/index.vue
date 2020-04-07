@@ -6,10 +6,16 @@
           <div class="input-homepage-url">
           </div>
         </el-form-item>
+      <el-form-item label="测试">
+          X:<el-input-number v-model="indexX"></el-input-number>
+          Y:<el-input-number v-model="indexY"></el-input-number>
+          <div class="input-homepage-url">
+          </div>
+        </el-form-item>
       
         <el-form-item label="操作">
           <el-button type="primary" @click="asyncHandleStartTask">测试</el-button>
-          <el-button type="primary" @click="asyncCopyBase64Content">复制base64文字内容</el-button>
+          <el-button type="danger" @click="testShowPng">展示图片</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -53,7 +59,10 @@ export default Vue.extend({
       canvas:{
         width:200,
         height:200,
-      }
+      },
+      pngMap:[[]],
+      indexX:0,
+      indexY:0,
       // imgContentList:[]
     }
   },
@@ -64,11 +73,19 @@ export default Vue.extend({
       clipboard.writeText(this.base64.bmp, "clipboard")
       console.log("复制成功")
     },
+    async testShowPng(){
+      // this.showPngItem(this.pngMap[this.indexX][this.indexY])
+    },
     async asyncHandleStartTask() {
       let screenPng = await this.catchScreenShot()
       let positionBlock = await imgProcess.getBlock(screenPng)
       console.log("positionBlock => ", positionBlock)
-      this.generateClipImg(screenPng, positionBlock.minX,positionBlock.minY,positionBlock.width,positionBlock.height)
+      // this.generateClipImg(screenPng, positionBlock.minX,positionBlock.minY,positionBlock.width,positionBlock.height)
+      let pngMap = await imgProcess.splitImgIntoBlock(screenPng, positionBlock)
+      // this.pngMap = pngMap
+      // this.showPngItem(pngMap[1][1])
+      let filterResult = imgProcess.filterByColor(screenPng)
+      this.showPngItem(filterResult)
       // 对雷区进行建模
       // 1. 获取游戏图像边界 
       // 2. 点击↓键, 生成黄色框 => rgb值(225,243,90)
@@ -93,7 +110,7 @@ export default Vue.extend({
 
       return pngItem
     },
-    async generateClipImg(pngItem: pngjs.PNGWithMetadata, startX:number=0, startY:number=0, clipWidth:number=300, clipHeight:number=300){
+    async generateClipImg(pngItem: pngjs.PNG, startX:number=0, startY:number=0, clipWidth:number=300, clipHeight:number=300){
 
       // 设置canvas宽高
       this.canvas.width = clipWidth
@@ -113,7 +130,35 @@ export default Vue.extend({
         myImageData.data[index] = bufferArray[index]
       }
       ctx!.putImageData(myImageData, 0,0)
+    },
+    async showPngItem(pngItem: pngjs.PNG){
+      if(pngItem === undefined){
+        return
+      }
+      let canvasWidth = pngItem.width
+      let canvasHeight = pngItem.height
+      // 设置canvas宽高
+      this.canvas.width  = canvasWidth
+      this.canvas.height = canvasHeight
+
+      let canvasItem:HTMLCanvasElement = document.getElementById("canvas-item");
+      // canvas 元素是 可替换元素, 有默认的宽高属性(此属性与 css 样式中的 width 和 height 不同), 默认 300px*150px
+      // canvas 的绘制宽高取决于它的宽高属性, 与 css 样式中的宽高无关
+      canvasItem.setAttribute('width', canvasWidth + "px")
+      canvasItem.setAttribute('height', canvasHeight + "px")
+
+      let ctx=canvasItem.getContext("2d");
+      const bufferArray = pngItem.data
+
+      let pngItemDataArray = new Uint8ClampedArray(canvasWidth * canvasHeight * 4)
+      for(let index=0;index<pngItem.data.length;index++){
+        pngItemDataArray[index] = pngItem.data[index]
+      }
+
+      let myImageData = new ImageData(pngItemDataArray, canvasWidth, canvasHeight)
+      ctx!.putImageData(myImageData, 0,0)
     }
+
   },
   computed: {
     canvasStyle(){

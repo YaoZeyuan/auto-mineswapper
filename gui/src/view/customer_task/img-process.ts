@@ -1,6 +1,7 @@
 import pngjs, { PNG } from 'pngjs'
 import { desktopCapturer } from 'electron'
 import robotjs from 'robotjs'
+import { P } from '~/gui/dist/1.0.0/js/e743566'
 const remote = require('electron').remote
 
 class TypePixel {
@@ -34,7 +35,7 @@ class TypePixel {
   }
 }
 // const PonsitionPixel = new TypePixel(245, 235, 112, 0)
-const Pixel_选择框特征颜色_黄 = new TypePixel(244, 233, 87, 0)
+const Pixel_选择框特征颜色_黄 = new TypePixel(255, 243, 90, 0)
 const Pixel_地雷标记特征颜色_红 = new TypePixel(154, 11, 0, 0)
 
 class PositionBlock {
@@ -55,19 +56,25 @@ class PositionBlock {
   }
 
   updatePosition(x = 0, y = 0) {
+    let isChanged = false
     if (x < this.minX) {
       this.minX = x
+      isChanged = true
     }
-    if (x > this.maxY) {
+    if (x > this.maxX) {
       this.maxX = x
+      isChanged = true
     }
 
     if (y < this.minY) {
       this.minY = y
+      isChanged = true
     }
     if (y > this.maxY) {
       this.maxY = y
+      isChanged = true
     }
+    return isChanged
   }
 
   get width() {
@@ -191,30 +198,102 @@ export default class T {
     for (let x = 0; x < positionPng.width; x++) {
       for (let y = 0; y < positionPng.height; y++) {
         let pixel = positionPng.getPixel(x, y)
-        if (x === 544 && y == 152) {
-          // debugger
-        }
-        // if (pixel.r === 255) {
-        //   debugger
-        // }
-        // if (pixel.g === 243) {
-        //   debugger
-        // }
-        // if (pixel.b === 90) {
-        //   debugger
-        // }
-        // console.log('g =>', pixel.g)
+        let pixel_x_1 = positionPng.getPixel(x + 1, y)
+        let pixel_x__1 = positionPng.getPixel(x - 1, y)
+        let pixel_y_1 = positionPng.getPixel(x, y + 1)
+        let pixel_y__1 = positionPng.getPixel(x, y - 1)
         if (pixel.isSame_模糊匹配(Pixel_选择框特征颜色_黄)) {
-          debugger
-          blockPosition.updatePosition(x, y)
+          const Need_Check = true
+          if (Need_Check) {
+            // 精确匹配, 上下左右至少要有一个像素也匹配上
+            if (
+              pixel_x_1.isSame_模糊匹配(Pixel_选择框特征颜色_黄) ||
+              pixel_y_1.isSame_模糊匹配(Pixel_选择框特征颜色_黄) ||
+              pixel_x__1.isSame_模糊匹配(Pixel_选择框特征颜色_黄) ||
+              pixel_y__1.isSame_模糊匹配(Pixel_选择框特征颜色_黄)
+            ) {
+              blockPosition.updatePosition(x, y)
+            }
+          } else {
+            blockPosition.updatePosition(x, y)
+          }
         }
       }
     }
     return blockPosition
   }
 
-  static async readImg() {
+  /**
+   * 将屏幕截图分割为区块
+   * @param sourceImg
+   * @param positionBlock
+   */
+  static async splitImgIntoBlock(sourceImg: pngjs.PNGWithMetadata, positionBlock: PositionBlock) {
     // 从截图区域中, 寻找带黄标的区块
-    return
+    let splitStartX = positionBlock.minX
+    let splitStartY = positionBlock.minY
+    let width = positionBlock.width
+    let height = positionBlock.height
+    if (width === 0 || height === 0) {
+      console.log(positionBlock, '没有匹配正确, 自动退出')
+      return [[]]
+    }
+
+    let sourceImgWithPos = new PngWithPosition(sourceImg)
+    let startX = splitStartX % width
+    let startY = splitStartY % height
+    let map: PNG[][] = []
+    for (let indexX = 0; indexX * width < sourceImg.width; indexX++) {
+      let splitBaseX = startX + indexX * width
+      map[indexX] = []
+      for (let indexY = 0; indexY * height < sourceImg.height; indexY++) {
+        let splitBaseY = startY + indexY * height
+        let pngItem = new PNG({
+          width: width,
+          height: height,
+        })
+        for (let x_截图Pos = 0; x_截图Pos < width; x_截图Pos++) {
+          for (let y_截图Pos = 0; y_截图Pos < height; y_截图Pos++) {
+            let indexAt = (y_截图Pos * width + x_截图Pos) * 4
+            let pixel = sourceImgWithPos.getPixel(x_截图Pos + splitBaseX, y_截图Pos + splitBaseY)
+            pngItem.data[indexAt] = pixel.r
+            pngItem.data[indexAt + 1] = pixel.g
+            pngItem.data[indexAt + 2] = pixel.b
+            pngItem.data[indexAt + 3] = pixel.a
+          }
+        }
+        map[indexX][indexY] = pngItem
+        console.log(`第${indexX},${indexY}个区块填充完毕`)
+      }
+    }
+
+    return map
+  }
+  static filterByColor(sourceImg: pngjs.PNGWithMetadata) {
+    let sourceImgWithPos = new PngWithPosition(sourceImg)
+    let width = sourceImg.width
+    let height = sourceImg.height
+    let pngItem = new PNG({
+      width: width,
+      height: height,
+    })
+    for (let x = 0; x < width; x++) {
+      for (let y = 0; y < height; y++) {
+        let indexAt = (y * width + x) * 4
+        let pixel = sourceImgWithPos.getPixel(x, y)
+        if (pixel.isSame_模糊匹配(Pixel_选择框特征颜色_黄)) {
+          pngItem.data[indexAt] = pixel.r
+          pngItem.data[indexAt + 1] = pixel.g
+          pngItem.data[indexAt + 2] = pixel.b
+          pngItem.data[indexAt + 3] = pixel.a
+        } else {
+          pngItem.data[indexAt] = 0
+          pngItem.data[indexAt + 1] = 0
+          pngItem.data[indexAt + 2] = 0
+          pngItem.data[indexAt + 3] = 255
+        }
+      }
+    }
+    return pngItem
   }
 }
